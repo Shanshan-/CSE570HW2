@@ -1,6 +1,6 @@
 import sys
-import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib
 from sklearn.naive_bayes import GaussianNB
 from random import *
 import random
