@@ -181,7 +181,7 @@ def genData(grid, transmitters, resolution, shadowDev):
 # change the values in an array from numbers to coordinate tuples
 def changeToTuples(tupList, resolution):
     ans = []
-    for x in range(0, len(list)):
+    for x in range(0, len(tupList)):
         val = tupList[x]
         xcoor = val / resolution
         ycoor = val % resolution
@@ -189,14 +189,55 @@ def changeToTuples(tupList, resolution):
     return ans
 
 # calculate the Euclidean distance between two tuple grids and return in separate array
-def calcError(predictVals, testVals):
-    ans = []
+def calcError(predictVals, testVals, resolution):
+    errors = []
+    sumErr = 0
     for x in range(0, len(predictVals)):
         # calculate the Euclidean distance
-        xdiff = abs(predictVals[x][0] - testVals[x][0])
-        ydiff = abs(predictVals[x][1] - testVals[x][1])
-        dist = math.sqrt(xdiff**2 + ydiff**2)
-        ans.append(dist)
+        dist = calcDist(predictVals[x][0], predictVals[x][1], testVals[x][0], testVals[x][1], resolution)
+        errors.append(dist)
+        sumErr += dist
+    return errors, sumErr/len(predictVals)
+
+# run the simulation once, and return aggregate error
+def beginSim(numTrans, resolution, shadowDev):
+    # determine resolution and create grid and transmitters
+    gridLength = 200
+    print "Total # of rows/columns: " + str(gridLength / int(resolution)) + "\n"
+    simGrid, simTrans = setupSim(gridLength / resolution, numTrans)
+    genFingerprints(simGrid, simTrans, gridLength / resolution, shadowDev)
+
+    # perform Naive Bayes algorithm to generate classifier
+    trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, resolution, shadowDev)
+    model = GaussianNB()
+    print "Performing Naive Bayes"
+    model.fit(trainPredictor, trainTarget)
+
+    # perform predictions, and calculate error
+    # for num in range(0, len(testPredictor)):
+    print "Predicting classes"
+    predicted = model.predict(testPredictor)
+    predictTup = changeToTuples(predicted, resolution)
+    testTup = changeToTuples(testTarget, resolution)
+    allErrs, avgErr = calcError(predictTup, testTup, resolution)
+
+    """
+    "# printing out results for debugging purposes
+    printGrid(grid, 0)
+    printGrid(simGrid, 1)
+    printTrans(transmitters)
+    printGrid(simGrid, 2)"""
+    print type(predicted)
+    print predicted
+    print testTarget
+    print predictTup
+    print "\n"
+    print testTup
+    print "\n"
+    print allErrs
+    print avgErr
+
+    return avgErr
 
 """ PROGRAM BEGINS HERE"""
 # start here to use preset values
@@ -216,35 +257,6 @@ simNumTrans = int(simNumTrans)
 simRes = int(simRes)
 simShadowDev = int(simShadowDev)"""
 
-# determine resolution and create grid and transmitters
-gridLength = 200
-print "Total # of rows/columns: " + str(gridLength / int(simRes)) + "\n"
-simGrid, simTrans = setupSim(gridLength / simRes, simNumTrans)
-genFingerprints(simGrid, simTrans, gridLength / simRes, simShadowDev)
-
-# perform Naive Bayes algorithm to generate classifier
-trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, simRes, simShadowDev)
-model = GaussianNB()
-print "Performing Naive Bayes"
-model.fit(trainPredictor, trainTarget)
-
-# perform predictions, and calculate error
-# for num in range(0, len(testPredictor)):
-print "Predicting classes"
-predicted = model.predict(testPredictor)
-predictTup = changeToTuples(predicted, simRes)
-testTup = changeToTuples(testTarget, simRes)
-# calcError(predictTup, testTup)
+beginSim(simNumTrans, simRes, simShadowDev)
 
 
-# printing out results
-#printGrid(grid, 0)
-#printGrid(simGrid, 1)
-#printTrans(transmitters)
-#printGrid(simGrid, 2)
-print type(predicted)
-print predicted
-print testTarget
-print predictTup
-print "\n"
-print testTup
