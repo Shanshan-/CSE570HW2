@@ -1,9 +1,12 @@
 import sys
 import matplotlib.pyplot as plt
 import matplotlib
+from sklearn.naive_bayes import GaussianNB
 from random import *
 import random
 import math
+import numpy as np
+
 
 """ CLASSES AND FUNCTIONS"""
 class Transmitter:
@@ -38,26 +41,26 @@ class gridCell:
 
 # print out the results of the current grid
 # 0 = location; 1 = transmitters; 2 = vectors; 3 = errors)
-def printGrid(grid, content):
-    if content == 0:  # print out x, y locations
+def printGrid(grid, contentOpt):
+    if contentOpt == 0:  # print out x, y locations
         print "Printing out grid locations"
         for numx in range (0, len(grid)):  # iterate through each row
             for numy in range (0, len(grid)):  # iterate through each column
                 print "(" + str(grid[numx][numy].x) + "," + str(grid[numx][numy].y) + ")",
             print "\n"
-    elif content == 1:  # print out boolean for transmitter
+    elif contentOpt == 1:  # print out boolean for transmitter
         print "Printing out transmitter locations"
         for numx in range (0, len(grid)):  # iterate through each row
             for numy in range (0, len(grid)):  # iterate through each column
                 print "[ " + str(grid[numx][numy].trans) + " ]",
             print "\n"
-    elif content == 2:  # print out all feature vectors
+    elif contentOpt == 2:  # print out all feature vectors
         print "Printing out all fingerprint feature vectors"
         for numx in range (0, len(grid)):  # iterate through each row
             for numy in range (0, len(grid)):  # iterate through each column
                 print "[" + str(grid[numx][numy].featureVec) + "]",
             print "\n"
-    elif content == 3:  # print out all location errors
+    elif contentOpt == 3:  # print out all location errors
         print "Printing out all location errors"
         print "Not supported yet"
     else:  # this is not an option
@@ -138,39 +141,110 @@ def genFingerprints(grid, transmitters, resolution, shadowDev):
                 strength = getRecStrength(shadowDev, dist)
                 cell.featureVec[x] = strength  # set the received signal strength
 
+# create a feature vector for a given cell, and return it can probably use this to replace parts of genFingerprints
+def genFeatVec(cell, transmitters, resolution, shadowDev):
+    vec = [0] * len(transmitters)
+    for x in range(0, len(transmitters)):  # for each transmitter at each cell
+        trans = transmitters[x]
+        dist = calcDist(cell.x, cell.y, trans.x, trans.y, 200/resolution)
+        strength = getRecStrength(shadowDev, dist)
+        vec[x] = strength  # store the received signal strength
+    return vec
+
 # generate the testing and training data feature vectors
-def genData():
-    return [0], [1]
+def genData(grid, transmitters, resolution, shadowDev):
+    # generate return variables'
+    trainPredList = []
+    trainTarList = []
+    testPredList = []
+    testTarList = []
+
+    # for each grid cell, choose a random number between 10-20
+    for numx in range(0, resolution):  # iterate through each row
+        for numy in range(0, resolution):  # iterate through each column
+            rand = randrange(10, 20)  # generate rand number of feature vectors
+            for x in range(0, rand):  # for each vector to create
+                vec = genFeatVec(grid[numx][numy], transmitters, resolution, shadowDev)
+                coor = numx * 200/resolution + numy  # following C array notation
+
+                # determine if the new vector is training or testing data, and store appropriately
+                testRand = random.random()
+                if testRand <= 0.1:  # this is testing data
+                    testPredList.append(vec)
+                    testTarList.append(coor)
+                else:  # this is training data
+                    trainPredList.append(vec)
+                    trainTarList.append(coor)
+
+    return np.asarray(trainPredList), np.asarray(trainTarList), np.asarray(testPredList), np.asarray(testTarList)
+
+# change the values in an array from numbers to coordinate tuples
+def changeToTuples(tupList, resolution):
+    ans = []
+    for x in range(0, len(list)):
+        val = tupList[x]
+        xcoor = val / resolution
+        ycoor = val % resolution
+        ans.append([xcoor, ycoor])
+    return ans
+
+# calculate the Euclidean distance between two tuple grids and return in separate array
+def calcError(predictVals, testVals):
+    ans = []
+    for x in range(0, len(predictVals)):
+        # calculate the Euclidean distance
+        xdiff = abs(predictVals[x][0] - testVals[x][0])
+        ydiff = abs(predictVals[x][1] - testVals[x][1])
+        dist = math.sqrt(xdiff**2 + ydiff**2)
+        ans.append(dist)
 
 """ PROGRAM BEGINS HERE"""
 # start here to use preset values
-numTrans = 1
-resolution = 10
-shadowDev = 0
+simNumTrans = 3
+simRes = 10
+simShadowDev = 1
 
 """
 # or start here to get options from user (NOTE: no value verification is done here)
-numTrans = raw_input("Enter number of transmitters = [1:10]: ")
-resolution = raw_input("Enter grid resolution = [1, 5, 10, 15, 20]: ")
-shadowDev = raw_input("Enter the shadowing noise standard deviation = [1, 2, 3, 4, 5, 10]: ")
-if not numTrans.isdigit() or not resolution.isdigit() or not shadowDev.isdigit():
+simNumTrans = raw_input("Enter number of transmitters = [1:10]: ")
+simRes = raw_input("Enter grid resolution = [1, 5, 10, 15, 20]: ")
+simShadowDev = raw_input("Enter the shadowing noise standard deviation = [1, 2, 3, 4, 5, 10]: ")
+if not simNumTrans.isdigit() or not simRes.isdigit() or not simShadowDev.isdigit():
     print "Must be a whole number"
     sys.exit(1)
-numTrans = int(numTrans)
-resolution = int(resolution)
-shadowDev = int(shadowDev)"""
+simNumTrans = int(simNumTrans)
+simRes = int(simRes)
+simShadowDev = int(simShadowDev)"""
 
 # determine resolution and create grid and transmitters
 gridLength = 200
-print "Total # of rows/columns: " + str(gridLength/int(resolution)) + "\n"
-grid, transmitters = setupSim(gridLength/resolution, numTrans)
-genFingerprints(grid, transmitters, gridLength/resolution, shadowDev)
+print "Total # of rows/columns: " + str(gridLength / int(simRes)) + "\n"
+simGrid, simTrans = setupSim(gridLength / simRes, simNumTrans)
+genFingerprints(simGrid, simTrans, gridLength / simRes, simShadowDev)
 
-# perform Naive Bayes algorithm
-train, test = genData()
+# perform Naive Bayes algorithm to generate classifier
+trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, simRes, simShadowDev)
+model = GaussianNB()
+print "Performing Naive Bayes"
+model.fit(trainPredictor, trainTarget)
+
+# perform predictions, and calculate error
+# for num in range(0, len(testPredictor)):
+print "Predicting classes"
+predicted = model.predict(testPredictor)
+predictTup = changeToTuples(predicted, simRes)
+testTup = changeToTuples(testTarget, simRes)
+# calcError(predictTup, testTup)
+
 
 # printing out results
 #printGrid(grid, 0)
-printGrid(grid, 1)
+#printGrid(simGrid, 1)
 #printTrans(transmitters)
-printGrid(grid, 2)
+#printGrid(simGrid, 2)
+print type(predicted)
+print predicted
+print testTarget
+print predictTup
+print "\n"
+print testTup
