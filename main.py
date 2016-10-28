@@ -8,7 +8,7 @@ import math
 import numpy as np
 
 
-""" CLASSES AND FUNCTIONS"""
+""" CLASSES """
 class Transmitter:
     # create a point class to store info about a tranmitter
 
@@ -39,8 +39,8 @@ class gridCell:
         string = "[" + str(self.featureVec) + "]"
         return string
 
-# print out the results of the current grid
-# 0 = location; 1 = transmitters; 2 = vectors; 3 = errors)
+""" FUNCTIONS """
+# print out the results of the current grid, where 0 = location; 1 = transmitters; 2 = vectors; 3 = errors
 def printGrid(grid, contentOpt):
     if contentOpt == 0:  # print out x, y locations
         print "Printing out grid locations"
@@ -181,7 +181,7 @@ def genData(grid, transmitters, resolution, shadowDev):
 # change the values in an array from numbers to coordinate tuples
 def changeToTuples(tupList, resolution):
     ans = []
-    for x in range(0, len(list)):
+    for x in range(0, len(tupList)):
         val = tupList[x]
         xcoor = val / resolution
         ycoor = val % resolution
@@ -189,21 +189,68 @@ def changeToTuples(tupList, resolution):
     return ans
 
 # calculate the Euclidean distance between two tuple grids and return in separate array
-def calcError(predictVals, testVals):
-    ans = []
+def calcError(predictVals, testVals, resolution):
+    errors = []
+    sumErr = 0
     for x in range(0, len(predictVals)):
         # calculate the Euclidean distance
-        xdiff = abs(predictVals[x][0] - testVals[x][0])
-        ydiff = abs(predictVals[x][1] - testVals[x][1])
-        dist = math.sqrt(xdiff**2 + ydiff**2)
-        ans.append(dist)
+        dist = calcDist(predictVals[x][0], predictVals[x][1], testVals[x][0], testVals[x][1], resolution)
+        errors.append(dist)
+        sumErr += dist
+    return errors, sumErr/len(predictVals)
 
-""" PROGRAM BEGINS HERE"""
-# start here to use preset values
-simNumTrans = 3
-simRes = 10
-simShadowDev = 1
+# run the simulation once, and return average error
+def beginSim(numTrans, resolution, shadowDev):
+    # determine resolution and create grid and transmitters
+    gridLength = 200
+    # print "Total # of rows/columns: " + str(gridLength / int(resolution))
+    simGrid, simTrans = setupSim(gridLength / resolution, numTrans)
+    genFingerprints(simGrid, simTrans, gridLength / resolution, shadowDev)
 
+    # perform Naive Bayes algorithm to generate classifier
+    trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, resolution, shadowDev)
+    model = GaussianNB()
+    # print "Performing Naive Bayes"
+    model.fit(trainPredictor, trainTarget)
+
+    # perform predictions, and calculate error
+    # print "Predicting classes"
+    predicted = model.predict(testPredictor)
+    predictTup = changeToTuples(predicted, resolution)
+    testTup = changeToTuples(testTarget, resolution)
+    allErrs, avgErr = calcError(predictTup, testTup, resolution)
+
+    """
+    "# printing out results for debugging purposes
+    printGrid(grid, 0)
+    printGrid(simGrid, 1)
+    printTrans(transmitters)
+    printGrid(simGrid, 2)
+    print type(predicted)
+    print predicted
+    print testTarget
+    print predictTup
+    print "\n"
+    print testTup
+    print "\n"
+    print allErrs"""
+    print "    Average Error = " + str(avgErr)
+    # print "\n"
+
+    return avgErr
+
+# run the simulation x number of times, and return the errors and average errors across all runs
+def simNum(iters, numTrans, resolution, shadowDev):
+    errors = []
+    sumErrs = 0
+    for num in range(0, iters):
+        print "Currently running iteration " + str(num + 1)
+        tmp = beginSim(numTrans, resolution, shadowDev)
+        errors.append(tmp)
+        sumErrs += tmp
+    return errors, sumErrs/iters
+
+""" PROGRAM BEGINS HERE """
 """
 # or start here to get options from user (NOTE: no value verification is done here)
 simNumTrans = raw_input("Enter number of transmitters = [1:10]: ")
@@ -215,36 +262,12 @@ if not simNumTrans.isdigit() or not simRes.isdigit() or not simShadowDev.isdigit
 simNumTrans = int(simNumTrans)
 simRes = int(simRes)
 simShadowDev = int(simShadowDev)"""
+# start here to use preset values
+simNumTrans = 3
+simRes = 10
+simShadowDev = 1
+iterations = 10
 
-# determine resolution and create grid and transmitters
-gridLength = 200
-print "Total # of rows/columns: " + str(gridLength / int(simRes)) + "\n"
-simGrid, simTrans = setupSim(gridLength / simRes, simNumTrans)
-genFingerprints(simGrid, simTrans, gridLength / simRes, simShadowDev)
-
-# perform Naive Bayes algorithm to generate classifier
-trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, simRes, simShadowDev)
-model = GaussianNB()
-print "Performing Naive Bayes"
-model.fit(trainPredictor, trainTarget)
-
-# perform predictions, and calculate error
-# for num in range(0, len(testPredictor)):
-print "Predicting classes"
-predicted = model.predict(testPredictor)
-predictTup = changeToTuples(predicted, simRes)
-testTup = changeToTuples(testTarget, simRes)
-# calcError(predictTup, testTup)
+allErrs, avrErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
 
 
-# printing out results
-#printGrid(grid, 0)
-#printGrid(simGrid, 1)
-#printTrans(transmitters)
-#printGrid(simGrid, 2)
-print type(predicted)
-print predicted
-print testTarget
-print predictTup
-print "\n"
-print testTup
