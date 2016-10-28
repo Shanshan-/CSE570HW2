@@ -1,11 +1,12 @@
 import sys
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
 from sklearn.naive_bayes import GaussianNB
 from random import *
 import random
 import math
 import numpy as np
+import pylab as pl
 
 
 """ CLASSES """
@@ -208,7 +209,7 @@ def beginSim(numTrans, resolution, shadowDev):
     genFingerprints(simGrid, simTrans, gridLength / resolution, shadowDev)
 
     # perform Naive Bayes algorithm to generate classifier
-    trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, resolution, shadowDev)
+    trainPredictor, trainTarget, testPredictor, testTarget = genData(simGrid, simTrans, 200/resolution, shadowDev)
     model = GaussianNB()
     # print "Performing Naive Bayes"
     model.fit(trainPredictor, trainTarget)
@@ -222,7 +223,7 @@ def beginSim(numTrans, resolution, shadowDev):
 
     """
     "# printing out results for debugging purposes
-    printGrid(grid, 0)
+    printGrid(simGrid, 0)
     printGrid(simGrid, 1)
     printTrans(transmitters)
     printGrid(simGrid, 2)
@@ -234,8 +235,7 @@ def beginSim(numTrans, resolution, shadowDev):
     print testTup
     print "\n"
     print allErrs"""
-    print "    Average Error = " + str(avgErr)
-    # print "\n"
+    print "Average Error = " + str(avgErr)
 
     return avgErr
 
@@ -244,17 +244,43 @@ def simNum(iters, numTrans, resolution, shadowDev):
     errors = []
     sumErrs = 0
     for num in range(0, iters):
-        print "Currently running iteration " + str(num + 1)
+        # print "Currently running iteration " + str(num + 1)
         tmp = beginSim(numTrans, resolution, shadowDev)
         errors.append(tmp)
         sumErrs += tmp
     return errors, sumErrs/iters
 
+def genHeatmap(resolution):
+    data = []
+    deviations = [1, 2, 3, 4, 5, 10]
+
+    # generate data for each standard deviation, for each # of transmitters
+    for stdDev in deviations:
+        stdDevData = []
+        for numTrans in range(1, 11):
+            error = beginSim(numTrans, resolution, int(stdDev))
+            stdDevData.append(error)
+        data.append(stdDevData)
+        print "Data for standard deviation " + str(stdDev) + " generated"
+    print "Data for resolution " + str(resolution) + " generated"
+
+    #display the data in a heat map
+    data = np.asarray(data)
+    title = "Heatmap for resolution = " + str(resolution)
+    print data
+    plt.pcolor(data, cmap=matplotlib.cm.Blues)
+    plt.title(title)
+    plt.ylabel("Standard Deviation")
+    plt.xlabel("# of Transmitters")
+    plt.yticks(np.array([0,1,2,3,4,5,6]), [0,1,2,3,4,5,10])
+    plt.show()
+
+
 """ PROGRAM BEGINS HERE """
 """
 # or start here to get options from user (NOTE: no value verification is done here)
 simNumTrans = raw_input("Enter number of transmitters = [1:10]: ")
-simRes = raw_input("Enter grid resolution = [1, 5, 10, 15, 20]: ")
+simRes = raw_input("Enter grid resolution = [1, 5, 10, 15, 20]: ")  # == size of each cell; 200/this = num cells per row
 simShadowDev = raw_input("Enter the shadowing noise standard deviation = [1, 2, 3, 4, 5, 10]: ")
 if not simNumTrans.isdigit() or not simRes.isdigit() or not simShadowDev.isdigit():
     print "Must be a whole number"
@@ -263,11 +289,28 @@ simNumTrans = int(simNumTrans)
 simRes = int(simRes)
 simShadowDev = int(simShadowDev)"""
 # start here to use preset values
-simNumTrans = 3
-simRes = 10
+simNumTrans = 1
+simRes = 1
 simShadowDev = 1
 iterations = 10
 
-allErrs, avrErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
+# allErrs, avgErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
 
+"""
+allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 1)
+print "Total Average Error For s.d ==  1: " + str(avgErr)
+allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 2)
+print "Total Average Error For s.d ==  2: " + str(avgErr)
+allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 5)
+print "Total Average Error For s.d ==  5: " + str(avgErr)
+allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 10)
+print "Total Average Error For s.d == 10: " + str(avgErr)
+allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 20)
+print "Total Average Error For s.d == 20: " + str(avgErr)"""
 
+#generate heatmap
+#genHeatmap(1)
+#genHeatmap(2)
+#genHeatmap(5)
+#genHeatmap(10)
+genHeatmap(20)
