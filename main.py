@@ -6,7 +6,6 @@ from random import *
 import random
 import math
 import numpy as np
-import pylab as pl
 
 
 """ CLASSES """
@@ -250,9 +249,11 @@ def simNum(iters, numTrans, resolution, shadowDev):
         sumErrs += tmp
     return errors, sumErrs/iters
 
+#generate a heatmap for the given resolution
 def genHeatmap(resolution):
     data = []
     deviations = [1, 2, 3, 4, 5, 10]
+    transmitters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     # generate data for each standard deviation, for each # of transmitters
     for stdDev in deviations:
@@ -264,16 +265,23 @@ def genHeatmap(resolution):
         print "Data for standard deviation " + str(stdDev) + " generated"
     print "Data for resolution " + str(resolution) + " generated"
 
-    #display the data in a heat map
+    #prep the data to be displayed in the heat map
     data = np.asarray(data)
-    title = "Heatmap for resolution = " + str(resolution)
-    print data
+    title = "Heatmap For Resolution " + str(resolution)
+    # print data
+
+    # Shift ticks to be at 0.5, 1.5, etc
+    fig, ax = plt.subplots()
+    ax.yaxis.set(ticks=np.arange(0.5, len(deviations)), ticklabels=deviations)
+    ax.xaxis.set(ticks=np.arange(0.5, len(transmitters)), ticklabels=transmitters)
+
+    #display the data
     plt.pcolor(data, cmap=matplotlib.cm.Blues)
     plt.title(title)
     plt.ylabel("Standard Deviation")
     plt.xlabel("# of Transmitters")
-    plt.yticks(np.array([0,1,2,3,4,5,6]), [0,1,2,3,4,5,10])
-    plt.show()
+    plt.savefig(title + ".jpg")
+    # plt.show()
 
 
 """ PROGRAM BEGINS HERE """
@@ -309,8 +317,8 @@ allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 20)
 print "Total Average Error For s.d == 20: " + str(avgErr)"""
 
 #generate heatmap
-#genHeatmap(1)
-#genHeatmap(2)
-#genHeatmap(5)
-#genHeatmap(10)
 genHeatmap(20)
+genHeatmap(10)
+genHeatmap(5)
+genHeatmap(2)
+genHeatmap(1)
