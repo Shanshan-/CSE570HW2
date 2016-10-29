@@ -301,25 +301,30 @@ def genCDFs():
     plt.show()
 
 #generate a heatmap for the given resolution
-def genHeatmap(resolution):
+def genHeatmap(resolution, resGrid):
     data = []
     deviations = [1, 2, 3, 4, 5, 10]
     transmitters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     # generate data for each standard deviation, for each # of transmitters
+    dev = 0
     for stdDev in deviations:
         stdDevData = []
         for numTrans in range(1, 11):
             error = beginSim(numTrans, resolution, int(stdDev))
             stdDevData.append(error)
+            if resGrid[dev][numTrans-1][0] < error:
+                resGrid[dev][numTrans - 1][0] = int(error)
+                resGrid[dev][numTrans - 1][1] = int(resolution)
         data.append(stdDevData)
         print "Data for standard deviation " + str(stdDev) + " generated"
+        dev += 1
     print "Data for resolution " + str(resolution) + " generated"
 
     #prep the data to be displayed in the heat map
     data = np.asarray(data)
     title = "Heatmap For Resolution " + str(resolution)
-    # print data
+    print data
 
     # Shift ticks to be at 0.5, 1.5, etc
     fig, ax = plt.subplots()
@@ -334,6 +339,34 @@ def genHeatmap(resolution):
     plt.savefig(title + ".jpg")
     # plt.show()
 
+# generate a heat map for the ideal resolution
+def genResHeatmap(resData):
+    # prep the data to be displayed in the heat map
+    deviations = [1, 2, 3, 4, 5, 10]
+    transmitters = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # create grid for heat map to read
+    data = [[0 for x in range(0, 10)] for y in range(0, 6)]
+    for numx in range(0,6):
+        for numy in range(0,10):
+            data[numx][numy] = resData[numx][numy][1]
+
+    data = np.asarray(data)
+    title = "Best Resolution Heatmap"
+    print data
+
+    # Shift ticks to be at 0.5, 1.5, etc
+    fig, ax = plt.subplots()
+    ax.yaxis.set(ticks=np.arange(0.5, len(deviations)), ticklabels=deviations)
+    ax.xaxis.set(ticks=np.arange(0.5, len(transmitters)), ticklabels=transmitters)
+
+    # display the data
+    plt.pcolor(data, cmap=matplotlib.cm.Blues)
+    plt.title(title)
+    plt.ylabel("Standard Deviation")
+    plt.xlabel("# of Transmitters")
+    plt.savefig(title + ".jpg")
+    plt.show()
 
 """ PROGRAM BEGINS HERE """
 """
@@ -353,6 +386,7 @@ simRes = 1
 simShadowDev = 1
 iterations = 10
 
+
 # call this function to test out the general simulation
 # allErrs, avgErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
 
@@ -369,16 +403,18 @@ allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 20)
 print "Total Average Error For s.d == 20: " + str(avgErr)
 """
 
-"""
 # generate CDFs
 genCDFs()
-"""
 
-"""
-# generate heatmaps  # might have to change this function run on simNum(10)
-genHeatmap(20)
-genHeatmap(10)
-genHeatmap(5)
-genHeatmap(2)
-genHeatmap(1)
-"""
+#create grid for question 3c
+resGrid = [[[-sys.maxint-1,0] for x in range(0,10)] for y in range(0,6)]  # [accuracy, resolution]
+
+# generate heat maps  # might have to change this function run on simNum(10)
+genHeatmap(20, resGrid)
+#genHeatmap(10, resGrid)
+#genHeatmap(5, resGrid)
+#genHeatmap(2, resGrid)
+#genHeatmap(1, resGrid)
+
+#generate the best resolution heatmap
+genResHeatmap(resGrid)
