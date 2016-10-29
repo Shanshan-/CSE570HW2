@@ -249,6 +249,57 @@ def simNum(iters, numTrans, resolution, shadowDev):
         sumErrs += tmp
     return errors, sumErrs/iters
 
+# generate a CDF function plot
+def genCDFs():
+    # This can be done by first binning the data using the histogram function, then calling cumsum, both from numpy
+    # setup some basic variables
+    configs = [ [3,5,2] , [3,5,10] , [8,5,2] , [8,5,10]]
+    cdfDatasets = [0]
+    numBins = 10
+
+    # generate the 10 error arrays for the desired configuration
+    for config in configs:
+        # extract configurations
+        simNumTrans = config[0]
+        simRes = config[1]
+        simShadowDev = config[2]
+
+        # run simulation and collect results
+        cdfAllErrs, cdfAvgErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
+        cdfDatasets.append(cdfAllErrs)
+        print cdfAllErrs
+
+    # generate the cumulative sums for each of the configurations and plot them
+    fig, ax = plt.subplots()
+    for num in range(0, len(configs)):
+        # enter data into histogram and cdf functions
+        # normed = True such that fits into CDF
+        countsArr, binEdges = np.histogram(cdfDatasets[num + 1], bins = numBins, normed = False)
+        cdf = np.cumsum(countsArr)
+        print
+        print countsArr
+        print binEdges
+        print cdf
+
+        # shift bin edges to start from 0 to make
+        shift = binEdges[1] = binEdges[0]
+        for binNum in range(1, len(binEdges)):
+            binEdges[binNum] = binEdges[binNum] - shift
+
+        # plot the CDF functions
+        plt.plot(binEdges[1:], cdf, label=configs[num])
+        # plt.hist(countsArr, 10, label=configs[num])
+
+    #display all four graphs
+    legend = ax.legend(loc = "lower right")
+    for label in legend.get_texts():
+        label.set_fontsize('medium')
+    plt.title("CDFs For Three Configurations")
+    plt.ylabel("Count")
+    plt.xlabel("Normalized Error")
+    plt.savefig("CDF(1).jpg")
+    plt.show()
+
 #generate a heatmap for the given resolution
 def genHeatmap(resolution):
     data = []
@@ -286,7 +337,7 @@ def genHeatmap(resolution):
 
 """ PROGRAM BEGINS HERE """
 """
-# or start here to get options from user (NOTE: no value verification is done here)
+# start here to get options from user (NOTE: no value verification is done here)
 simNumTrans = raw_input("Enter number of transmitters = [1:10]: ")
 simRes = raw_input("Enter grid resolution = [1, 5, 10, 15, 20]: ")  # == size of each cell; 200/this = num cells per row
 simShadowDev = raw_input("Enter the shadowing noise standard deviation = [1, 2, 3, 4, 5, 10]: ")
@@ -302,9 +353,10 @@ simRes = 1
 simShadowDev = 1
 iterations = 10
 
+# call this function to test out the general simulation
 # allErrs, avgErr = simNum(iterations, simNumTrans, simRes, simShadowDev)
 
-"""
+""" Debugging code
 allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 1)
 print "Total Average Error For s.d ==  1: " + str(avgErr)
 allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 2)
@@ -314,11 +366,19 @@ print "Total Average Error For s.d ==  5: " + str(avgErr)
 allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 10)
 print "Total Average Error For s.d == 10: " + str(avgErr)
 allErrs, avgErr = simNum(iterations, simNumTrans, simRes, 20)
-print "Total Average Error For s.d == 20: " + str(avgErr)"""
+print "Total Average Error For s.d == 20: " + str(avgErr)
+"""
 
-#generate heatmap
+"""
+# generate CDFs
+genCDFs()
+"""
+
+"""
+# generate heatmaps  # might have to change this function run on simNum(10)
 genHeatmap(20)
 genHeatmap(10)
 genHeatmap(5)
 genHeatmap(2)
 genHeatmap(1)
+"""
